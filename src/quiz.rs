@@ -58,7 +58,7 @@ impl Quiz {
         let answer_len = self.get_quiz_answer().len();
         let mut input_answer = vec![];
         for i in 0..answer_len {
-            println!("あと答えを答えを{}回入力してください．", answer_len - i);
+            println!("あと答えを{}回入力してください．", answer_len - i);
             input! {
                 answer:String
             }
