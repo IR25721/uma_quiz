@@ -73,51 +73,59 @@ pub fn pause() {
     println!("{}", "\nPress Enter to continue...".dimmed());
     let _ = io::stdin().read_line(&mut String::new());
 }
-fn is_correct_answers(expected_answers: &[String], user_answers: &[String]) -> bool {
-    let mut sorted_expected = expected_answers.to_vec();
-    let mut sorted_user = user_answers.to_vec();
 
-    sorted_expected.sort();
-    sorted_user.sort();
-
-    sorted_expected == sorted_user
-}
+use std::collections::HashSet;
 
 pub fn start_quiz(quizzes: Quizzes, mut record: Record, record_path: &Path) -> Result<()> {
     for quiz in quizzes {
         println!("{}", format!("問題: {}", quiz.question).bold());
-
         println!(
             "{}",
             "答えをカンマ区切りで入力してください:".bright_yellow()
         );
+
         input! {
             user_input: String
         }
+
         let user_answers: Vec<String> = user_input
             .split(',')
             .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
             .collect();
 
-        let is_correct = is_correct_answers(&quiz.answers, &user_answers);
-        if is_correct {
-            println!("{}", "正解！".green().bold());
-            record.add_corrected(user_answers.len());
+        let expected_set: HashSet<_> = quiz.answers.iter().collect();
+        let user_set: HashSet<_> = user_answers.iter().collect();
+
+        let correct_count = user_set.intersection(&expected_set).count();
+        let total_user = user_answers.len();
+
+        if correct_count == quiz.answers.len() && total_user == quiz.answers.len() {
+            println!("{}", "完全正解！".green().bold());
+        } else if correct_count > 0 {
+            println!(
+                "{} {}/{}",
+                "部分正解！".yellow().bold(),
+                correct_count,
+                quiz.answers.len()
+            );
+            println!("{} {:?}", "正しい答え:".bright_green(), quiz.answers);
         } else {
             println!("{}", "不正解！".red().bold());
             println!("{} {:?}", "正しい答え:".bright_green(), quiz.answers);
         }
-        record.add_answered(user_answers.len());
+
+        record.add_corrected(correct_count);
+        record.add_answered(total_user);
         record.save(record_path)?;
         record.print_stats();
+
         println!("{}", "------------------------------".dimmed());
     }
     Ok(())
 }
-
 pub fn show_record(record: Record) {
     println!("{}", "=== Your Quiz Record ===".yellow().bold());
     record.print_stats();
     println!("{}", "=========================".yellow().bold());
 }
-
