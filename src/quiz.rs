@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 
+use crate::read_file::ReadFile;
+
 #[allow(unused)]
 #[derive(Debug, Deserialize)]
 pub struct Quiz {
@@ -27,8 +29,8 @@ impl IntoIterator for Quizzes {
     }
 }
 
-impl Quizzes {
-    pub fn new<T>(data_path: T) -> Result<Self>
+impl ReadFile for Quizzes {
+    fn new<T>(data_path: T) -> Result<Self>
     where
         T: AsRef<Path>,
     {
@@ -42,8 +44,15 @@ impl Quizzes {
             rng,
         })
     }
-
+}
+impl Quizzes {
     pub fn shuffle(&mut self) {
-        self.inner.shuffle(&mut self.rng)
+        self.inner.shuffle(&mut self.rng);
+    }
+    pub fn get_quizzes(&mut self, quiz_len: usize) {
+        self.inner.truncate(quiz_len);
+    }
+    pub fn get_quizzes_len(&self) -> usize {
+        self.inner.len()
     }
 }
