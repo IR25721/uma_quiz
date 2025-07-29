@@ -1,16 +1,18 @@
+mod correct_rate_record;
 mod menu;
 mod quiz;
+mod quiz_history_record;
 mod read_file;
-mod record;
-
 use color_eyre::Result;
 use colored::*;
+use correct_rate_record::CorrectRateRecord;
 use menu::{
-    clear_screen, pause, read_u8, read_usize, show_menu, show_record, show_welcome, start_quiz,
+    choice_quizzes, clear_screen, pause, read_u8, read_usize, show_menu, show_record, show_welcome,
+    start_quiz,
 };
 use quiz::Quizzes;
+use quiz_history_record::QuizHistoryRecord;
 use read_file::ReadFile;
-use record::Record;
 use std::path::Path;
 
 fn main() -> Result<()> {
@@ -21,17 +23,22 @@ fn main() -> Result<()> {
         clear_screen();
 
         let data_path = Path::new("quiz_data/keiba_base.json");
-        let record_path = Path::new("quiz_data/record.json");
+        let record_path = Path::new("quiz_data/correct_rate_record.json");
+        let quiz_history_record_path = Path::new("quiz_data/quiz_history_record.json");
         let mut quizzes = Quizzes::new(data_path)?;
-        let record = Record::new(record_path)?;
+        let record = CorrectRateRecord::new(record_path)?;
         quizzes.shuffle();
-
+        let quiz_history_record = QuizHistoryRecord::new(quiz_history_record_path)?;
         show_menu();
 
         let choice = read_u8("Your choice > ", 2);
 
         match choice {
             0 => {
+                let path_buf = choice_quizzes()?;
+                let data_path = path_buf.as_path();
+                let mut quizzes = Quizzes::new(data_path)?;
+
                 let max_quizzes = quizzes.get_quizzes_len();
                 let quiz_len = loop {
                     println!(
@@ -52,11 +59,17 @@ fn main() -> Result<()> {
                 };
 
                 quizzes.get_quizzes(quiz_len);
-                start_quiz(quizzes, record, record_path)?;
+                start_quiz(
+                    quizzes,
+                    record,
+                    record_path,
+                    quiz_history_record,
+                    quiz_history_record_path,
+                )?;
                 pause();
             }
             1 => {
-                show_record(record);
+                show_record(record, quiz_history_record);
                 pause();
             }
             2 => {

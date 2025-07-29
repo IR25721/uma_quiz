@@ -6,20 +6,20 @@ use std::path::Path;
 use crate::read_file::ReadFile;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Record {
+pub struct CorrectRateRecord {
     total_answered: usize,
     total_corrected: usize,
 }
 
-impl ReadFile for Record {
+impl ReadFile for CorrectRateRecord {
     fn new<T: AsRef<Path>>(data_path: T) -> Result<Self> {
         let json_content = fs::read_to_string(data_path)?;
-        let record: Record = serde_json::from_str(&json_content)?;
+        let record: CorrectRateRecord = serde_json::from_str(&json_content)?;
         Ok(record)
     }
 }
 
-impl Record {
+impl CorrectRateRecord {
     pub fn add_answered(&mut self, answered: usize) {
         self.total_answered += answered;
     }

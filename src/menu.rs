@@ -1,9 +1,10 @@
-use crate::{quiz::Quizzes, record::Record};
+use crate::quiz_history_record::QuizHistoryRecord;
+use crate::{correct_rate_record::CorrectRateRecord, quiz::Quizzes};
 use color_eyre::Result;
 use colored::*;
 use proconio::input;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -76,9 +77,18 @@ pub fn pause() {
 
 use std::collections::HashSet;
 
-pub fn start_quiz(quizzes: Quizzes, mut record: Record, record_path: &Path) -> Result<()> {
+pub fn start_quiz(
+    quizzes: Quizzes,
+    mut record: CorrectRateRecord,
+    record_path: &Path,
+    mut quiz_history_record: QuizHistoryRecord,
+    quiz_history_record_path: &Path,
+) -> Result<()> {
     for quiz in quizzes {
+        quiz_history_record.add_quiz_title(quiz.title);
+        quiz_history_record.add_quiz_timestamp();
         println!("{}", format!("問題: {}", quiz.question).bold());
+
         println!(
             "{}",
             "答えをカンマ区切りで入力してください:".bright_yellow()
@@ -87,9 +97,8 @@ pub fn start_quiz(quizzes: Quizzes, mut record: Record, record_path: &Path) -> R
         input! {
             user_input: String
         }
-
         let user_answers: Vec<String> = user_input
-            .split(',')
+            .split(&[',', '，'])
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
@@ -119,13 +128,49 @@ pub fn start_quiz(quizzes: Quizzes, mut record: Record, record_path: &Path) -> R
         record.add_answered(total_user);
         record.save(record_path)?;
         record.print_stats();
+        quiz_history_record.save(quiz_history_record_path)?;
 
         println!("{}", "------------------------------".dimmed());
     }
     Ok(())
 }
-pub fn show_record(record: Record) {
+pub fn show_record(record: CorrectRateRecord, quiz_history_record: QuizHistoryRecord) {
     println!("{}", "=== Your Quiz Record ===".yellow().bold());
     record.print_stats();
     println!("{}", "=========================".yellow().bold());
+    quiz_history_record.show_history();
+}
+
+pub fn choice_quizzes() -> Result<PathBuf> {
+    println!("{}", "=======================".blue());
+    println!("{}", "Choose a Quiz".bold().yellow());
+    println!("{}", "=======================".blue());
+
+    println!("{} {}", "0:".cyan().bold(), "基本クイズ".white());
+    println!("{} {}", "1:".cyan().bold(), "競走バクイズ".white());
+
+    println!();
+    let input = read_u8(
+        "Your choice > ".bright_blue().bold().to_string().as_str(),
+        1,
+    );
+
+    let path = match input {
+        0 => PathBuf::from("quiz_data/keiba_base.json"),
+        1 => PathBuf::from("quiz_data/uma_info_quiz.json"),
+        _ => unreachable!("Unexpected input: {}", input),
+    };
+
+    println!(
+        "{} {}",
+        "Selected:".green().bold(),
+        match input {
+            0 => "基本クイズ",
+            1 => "競走バクイズ",
+            _ => "",
+        }
+    );
+    println!();
+
+    Ok(path)
 }
