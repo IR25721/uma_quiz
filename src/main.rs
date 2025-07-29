@@ -22,12 +22,9 @@ fn main() -> Result<()> {
     loop {
         clear_screen();
 
-        let data_path = Path::new("quiz_data/keiba_base.json");
         let record_path = Path::new("quiz_data/correct_rate_record.json");
         let quiz_history_record_path = Path::new("quiz_data/quiz_history_record.json");
-        let mut quizzes = Quizzes::new(data_path)?;
         let record = CorrectRateRecord::new(record_path)?;
-        quizzes.shuffle();
         let quiz_history_record = QuizHistoryRecord::new(quiz_history_record_path)?;
         show_menu();
 
@@ -39,6 +36,7 @@ fn main() -> Result<()> {
                 let data_path = path_buf.as_path();
                 let mut quizzes = Quizzes::new(data_path)?;
 
+                quizzes.shuffle();
                 let max_quizzes = quizzes.get_quizzes_len();
                 let quiz_len = loop {
                     println!(

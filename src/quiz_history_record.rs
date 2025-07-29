@@ -9,7 +9,7 @@ use std::path::Path;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct QuizHistoryRecord {
-    quiz_titles: Vec<String>,
+    quiz_titles: Vec<(String, usize)>,
     quiz_timestamps: Vec<DateTime<Local>>,
 }
 
@@ -23,8 +23,17 @@ impl ReadFile for QuizHistoryRecord {
 
 impl QuizHistoryRecord {
     pub fn add_quiz_title(&mut self, quiz_title: String) {
-        self.quiz_titles.push(quiz_title);
+        if let Some(record) = self
+            .quiz_titles
+            .iter_mut()
+            .find(|(title, _)| *title == quiz_title)
+        {
+            record.1 += 1;
+        } else {
+            self.quiz_titles.push((quiz_title, 1));
+        }
     }
+
     pub fn add_quiz_timestamp(&mut self) {
         let quiz_timestamp = Local::now();
         self.quiz_timestamps.push(quiz_timestamp);
@@ -35,31 +44,44 @@ impl QuizHistoryRecord {
         fs::write(path, json)?;
         Ok(())
     }
+
     pub fn show_history(&self) {
-        println!("{}", "=== Quiz History ===".bright_yellow().bold());
+        println!("{}", "=== Quiz Stats ===".bright_yellow().bold());
 
-        if self.quiz_titles.is_empty() || self.quiz_timestamps.is_empty() {
-            println!("{}", "No quiz history available.".dimmed());
-            return;
-        }
-
-        for (i, (title, timestamp)) in self
-            .quiz_titles
-            .iter()
-            .zip(self.quiz_timestamps.iter())
-            .enumerate()
-        {
-            println!(
-                "{} {}",
-                format!("[{}]", i + 1).bright_blue().bold(),
-                format!(
-                    "{} at {}",
+        if self.quiz_titles.is_empty() {
+            println!("{}", "No quiz stats available.".dimmed());
+        } else {
+            for (i, (title, count)) in self.quiz_titles.iter().enumerate() {
+                println!(
+                    "{} {} was taken {} {}",
+                    format!("[{}]", i + 1).bright_blue().bold(),
                     title.green(),
-                    timestamp.format("%Y/%m/%d %H:%M:%S").to_string().cyan()
-                )
-            );
+                    count.to_string().yellow(),
+                    if *count > 1 { "times" } else { "time" }.dimmed()
+                );
+            }
         }
 
-        println!("{}", "====================".bright_yellow().bold());
+        println!(
+            "\n{}",
+            "=== Recent Quiz Timestamps ===".bright_yellow().bold()
+        );
+
+        if self.quiz_timestamps.is_empty() {
+            println!("{}", "No quiz timestamps available.".dimmed());
+        } else {
+            for (i, timestamp) in self.quiz_timestamps.iter().rev().take(10).enumerate() {
+                println!(
+                    "{} {}",
+                    format!("[{}]", i + 1).bright_blue().bold(),
+                    timestamp.format("%Y/%m/%d %H:%M:%S").to_string().cyan()
+                );
+            }
+        }
+        println!(
+            "{}",
+            "==============================".bright_yellow().bold()
+        );
     }
 }
+
